@@ -12,7 +12,7 @@
 // SX128X physical layer properties
 #define RADIOLIB_SX128X_FREQUENCY_STEP_SIZE                     198.3642578
 #define RADIOLIB_SX128X_MAX_PACKET_LENGTH                       255
-#define RADIOLIB_SX128X_CRYSTAL_FREQ                            52.0
+#define RADIOLIB_SX128X_CRYSTAL_FREQ                            52.0f
 #define RADIOLIB_SX128X_DIV_EXPONENT                            18
 
 // SX128X SPI commands
@@ -354,6 +354,7 @@ class SX128x: public PhysicalLayer {
     using PhysicalLayer::transmit;
     using PhysicalLayer::receive;
     using PhysicalLayer::startTransmit;
+    using PhysicalLayer::startReceive;
     using PhysicalLayer::readData;
 
     /*!
@@ -531,16 +532,6 @@ class SX128x: public PhysicalLayer {
     void clearPacketSentAction() override;
 
     /*!
-      \brief Interrupt-driven binary transmit method.
-      Overloads for string-based transmissions are implemented in PhysicalLayer.
-      \param data Binary data to be sent.
-      \param len Number of bytes to send.
-      \param addr Address to send the data to. Unsupported, compatibility only.
-      \returns \ref status_codes
-    */
-    int16_t startTransmit(const uint8_t* data, size_t len, uint8_t addr = 0) override;
-
-    /*!
       \brief Clean up after transmission is done.
       \returns \ref status_codes
     */
@@ -553,20 +544,6 @@ class SX128x: public PhysicalLayer {
       \returns \ref status_codes
     */
     int16_t startReceive() override;
-
-    /*!
-      \brief Interrupt-driven receive method. DIO1 will be activated when full packet is received.
-      \param timeout Raw timeout value, expressed as multiples of 15.625 us. Defaults to
-      RADIOLIB_SX128X_RX_TIMEOUT_INF for infinite timeout (Rx continuous mode),
-      set to RADIOLIB_SX128X_RX_TIMEOUT_NONE for no timeout (Rx single mode).
-      If timeout other than infinite is set, signal will be generated on DIO1.
-
-      \param irqFlags Sets the IRQ flags, defaults to RX done, RX timeout, CRC error and header error. 
-      \param irqMask Sets the mask of IRQ flags that will trigger DIO1, defaults to RX done.
-      \param len Only for PhysicalLayer compatibility, not used.
-      \returns \ref status_codes
-    */
-    int16_t startReceive(uint16_t timeout, RadioLibIrqFlags_t irqFlags = RADIOLIB_IRQ_RX_DEFAULT_FLAGS, RadioLibIrqFlags_t irqMask = RADIOLIB_IRQ_RX_DEFAULT_MASK, size_t len = 0);
 
     /*!
       \brief Reads the current IRQ status.
@@ -819,6 +796,20 @@ class SX128x: public PhysicalLayer {
     size_t getPacketLength(bool update, uint8_t* offset);
 
     /*!
+      \brief Set modem in fixed packet length mode. Available in GFSK mode only.
+      \param len Packet length.
+      \returns \ref status_codes
+    */
+    int16_t fixedPacketLengthMode(uint8_t len = RADIOLIB_SX128X_MAX_PACKET_LENGTH);
+
+    /*!
+      \brief Set modem in variable packet length mode. Available in GFSK mode only.
+      \param maxLen Maximum packet length.
+      \returns \ref status_codes
+    */
+    int16_t variablePacketLengthMode(uint8_t maxLen = RADIOLIB_SX128X_MAX_PACKET_LENGTH);
+
+    /*!
       \brief Get expected time-on-air for a given size of payload.
       \param len Payload length in bytes.
       \returns Expected time-on-air in microseconds.
@@ -863,6 +854,12 @@ class SX128x: public PhysicalLayer {
       \returns \ref status_codes
     */
     int16_t invertIQ(bool enable) override;
+    
+    /*! \copydoc PhysicalLayer::stageMode */
+    int16_t stageMode(RadioModeType_t mode, RadioModeConfig_t* cfg) override;
+
+    /*! \copydoc PhysicalLayer::launchMode */
+    int16_t launchMode() override;
 
     #if !RADIOLIB_EXCLUDE_DIRECT_RECEIVE
     /*!
@@ -890,9 +887,9 @@ class SX128x: public PhysicalLayer {
 
     // SX128x SPI command implementations
     uint8_t getStatus();
-    int16_t writeRegister(uint16_t addr, uint8_t* data, uint8_t numBytes);
+    int16_t writeRegister(uint16_t addr, const uint8_t* data, uint8_t numBytes);
     int16_t readRegister(uint16_t addr, uint8_t* data, uint8_t numBytes);
-    int16_t writeBuffer(uint8_t* data, uint8_t numBytes, uint8_t offset = 0x00);
+    int16_t writeBuffer(const uint8_t* data, uint8_t numBytes, uint8_t offset = 0x00);
     int16_t readBuffer(uint8_t* data, uint8_t numBytes, uint8_t offset = 0x00);
     int16_t setTx(uint16_t periodBaseCount = RADIOLIB_SX128X_TX_TIMEOUT_NONE, uint8_t periodBase = RADIOLIB_SX128X_PERIOD_BASE_15_625_US);
     int16_t setRx(uint16_t periodBaseCount, uint8_t periodBase = RADIOLIB_SX128X_PERIOD_BASE_15_625_US);
@@ -902,7 +899,7 @@ class SX128x: public PhysicalLayer {
     int16_t setTxParams(uint8_t pwr, uint8_t rampTime = RADIOLIB_SX128X_PA_RAMP_10_US);
     int16_t setBufferBaseAddress(uint8_t txBaseAddress = 0x00, uint8_t rxBaseAddress = 0x00);
     int16_t setModulationParams(uint8_t modParam1, uint8_t modParam2, uint8_t modParam3);
-    int16_t setPacketParamsGFSK(uint8_t preambleLen, uint8_t syncLen, uint8_t syncMatch, uint8_t crcLen, uint8_t whiten, uint8_t payLen = 0xFF, uint8_t hdrType = RADIOLIB_SX128X_GFSK_FLRC_PACKET_VARIABLE);
+    int16_t setPacketParamsGFSK(uint8_t preambleLen, uint8_t syncLen, uint8_t syncMatch, uint8_t crcLen, uint8_t whiten, uint8_t hdrType, uint8_t payLen = 0xFF);
     int16_t setPacketParamsBLE(uint8_t connState, uint8_t crcLen, uint8_t bleTest, uint8_t whiten);
     int16_t setPacketParamsLoRa(uint8_t preambleLen, uint8_t hdrType, uint8_t payLen, uint8_t crc, uint8_t invIQ = RADIOLIB_SX128X_LORA_IQ_STANDARD);
     int16_t setDioIrqParams(uint16_t irqMask, uint16_t dio1Mask, uint16_t dio2Mask = RADIOLIB_SX128X_IRQ_NONE, uint16_t dio3Mask = RADIOLIB_SX128X_IRQ_NONE);
@@ -920,6 +917,7 @@ class SX128x: public PhysicalLayer {
 
     // common parameters
     uint8_t power = 0;
+    uint32_t rxTimeout = 0;
 
     // cached LoRa parameters
     uint8_t invertIQEnabled = RADIOLIB_SX128X_LORA_IQ_STANDARD;
@@ -929,6 +927,7 @@ class SX128x: public PhysicalLayer {
     uint16_t bitRateKbps = 0;
     uint8_t bitRate = 0, modIndex = 0, shaping = 0;
     uint8_t preambleLengthGFSK = 0, syncWordLen = 0, syncWordMatch = 0, crcGFSK = 0, whitening = 0;
+    uint8_t packetType = RADIOLIB_SX128X_GFSK_FLRC_PACKET_VARIABLE;
 
     // cached FLRC parameters
     uint8_t codingRateFLRC = 0;
@@ -937,6 +936,7 @@ class SX128x: public PhysicalLayer {
     uint8_t connectionState = 0, crcBLE = 0, bleTestPayload = 0;
 
     int16_t config(uint8_t modem);
+    int16_t setPacketMode(uint8_t mode, uint8_t len);
     int16_t setHeaderType(uint8_t hdrType, size_t len = 0xFF);
 };
 

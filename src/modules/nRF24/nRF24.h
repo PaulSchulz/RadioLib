@@ -123,6 +123,8 @@
 #define RADIOLIB_NRF24_RF_PWR_12_DBM                            0b00000010  //  2     1                 -12 dBm
 #define RADIOLIB_NRF24_RF_PWR_6_DBM                             0b00000100  //  2     1                 -6 dBm
 #define RADIOLIB_NRF24_RF_PWR_0_DBM                             0b00000110  //  2     1                 0 dBm (default)
+#define RADIOLIB_NRF24_RF_LNA_OFF                               0b00000000  //  0     0   LNA gain: Off
+#define RADIOLIB_NRF24_RF_LNA_ON                                0b00000001  //  0     0             On
 
 // RADIOLIB_NRF24_REG_STATUS
 #define RADIOLIB_NRF24_RX_DR                                    0b01000000  //  6     6   Rx data ready
@@ -374,7 +376,7 @@ class nRF24: public PhysicalLayer {
       \param addr Address to which the next packet shall be transmitted.
       \returns \ref status_codes
     */
-    int16_t setTransmitPipe(uint8_t* addr);
+    int16_t setTransmitPipe(const uint8_t* addr);
 
     /*!
       \brief Sets address of receive pipes 0 or 1. The address width must be the same as the same
@@ -384,7 +386,7 @@ class nRF24: public PhysicalLayer {
       \param addr Address from which %nRF24 shall receive new packets on the specified pipe.
       \returns \ref status_codes
     */
-    int16_t setReceivePipe(uint8_t pipeNum, uint8_t* addr);
+    int16_t setReceivePipe(uint8_t pipeNum, const uint8_t* addr);
 
     /*!
       \brief Sets address of receive pipes 2 - 5. The first 2 - 4 address bytes for these pipes
@@ -464,6 +466,14 @@ class nRF24: public PhysicalLayer {
       \returns \ref status_codes
     */
     int16_t setEncoding(uint8_t encoding) override;
+    
+    /*!
+      \brief Enable or disable the low-noise amplifier.
+      Improves receive performance at the cost of increased power consumption.
+      \param enable True to enable.
+      \returns \ref status_codes
+    */
+    int16_t setLNA(bool enable);
 
 #if !RADIOLIB_GODMODE && !RADIOLIB_LOW_LEVEL
   protected:
@@ -471,8 +481,8 @@ class nRF24: public PhysicalLayer {
     Module* getMod() override;
 
     void SPIreadRxPayload(uint8_t* data, uint8_t numBytes);
-    void SPIwriteTxPayload(uint8_t* data, uint8_t numBytes);
-    void SPItransfer(uint8_t cmd, bool write = false, uint8_t* dataOut = NULL, uint8_t* dataIn = NULL, uint8_t numBytes = 0);
+    void SPIwriteTxPayload(const uint8_t* data, uint8_t numBytes);
+    void SPItransfer(uint8_t cmd, bool write = false, const uint8_t* dataOut = NULL, uint8_t* dataIn = NULL, uint8_t numBytes = 0);
 
 #if !RADIOLIB_GODMODE
   private:

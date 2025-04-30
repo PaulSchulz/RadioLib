@@ -272,9 +272,10 @@ class Module {
       \param lsb Least significant bit of the register variable. Bits below this one will not be affected by the write operation.
       \param checkInterval Number of milliseconds between register writing and verification reading. Some registers need up to 10ms to process the change.
       \param checkMask Mask of bits to check, only bits set to 1 will be verified.
+      \param force Write new value even if the old value is the same.
       \returns \ref status_codes
     */
-    int16_t SPIsetRegValue(uint32_t reg, uint8_t value, uint8_t msb = 7, uint8_t lsb = 0, uint8_t checkInterval = 2, uint8_t checkMask = 0xFF);
+    int16_t SPIsetRegValue(uint32_t reg, uint8_t value, uint8_t msb = 7, uint8_t lsb = 0, uint8_t checkInterval = 2, uint8_t checkMask = 0xFF, bool force = false);
 
     /*!
       \brief SPI burst read method.
@@ -297,7 +298,7 @@ class Module {
       \param data Pointer to array that holds the data that will be written.
       \param numBytes Number of bytes that will be written.
     */
-    void SPIwriteRegisterBurst(uint32_t reg, uint8_t* data, size_t numBytes);
+    void SPIwriteRegisterBurst(uint32_t reg, const uint8_t* data, size_t numBytes);
 
     /*!
       \brief SPI basic write method. Use of this method is reserved for special cases, SPIsetRegValue should be used instead.
@@ -314,7 +315,7 @@ class Module {
       \param dataIn Data that was transferred from slave to master.
       \param numBytes Number of bytes to transfer.
     */
-    void SPItransfer(uint16_t cmd, uint32_t reg, uint8_t* dataOut, uint8_t* dataIn, size_t numBytes);
+    void SPItransfer(uint16_t cmd, uint32_t reg, const uint8_t* dataOut, uint8_t* dataIn, size_t numBytes);
 
     /*!
       \brief Method to check the result of last SPI stream transfer.
@@ -343,7 +344,7 @@ class Module {
       \param verify Whether to verify the result of the transaction after it is finished.
       \returns \ref status_codes
     */
-    int16_t SPIreadStream(uint8_t* cmd, uint8_t cmdLen, uint8_t* data, size_t numBytes, bool waitForGpio = true, bool verify = true);
+    int16_t SPIreadStream(const uint8_t* cmd, uint8_t cmdLen, uint8_t* data, size_t numBytes, bool waitForGpio = true, bool verify = true);
     
     /*!
       \brief Method to perform a write transaction with SPI stream.
@@ -354,7 +355,7 @@ class Module {
       \param verify Whether to verify the result of the transaction after it is finished.
       \returns \ref status_codes
     */
-    int16_t SPIwriteStream(uint16_t cmd, uint8_t* data, size_t numBytes, bool waitForGpio = true, bool verify = true);
+    int16_t SPIwriteStream(uint16_t cmd, const uint8_t* data, size_t numBytes, bool waitForGpio = true, bool verify = true);
 
     /*!
       \brief Method to perform a write transaction with SPI stream.
@@ -366,7 +367,7 @@ class Module {
       \param verify Whether to verify the result of the transaction after it is finished.
       \returns \ref status_codes
     */
-    int16_t SPIwriteStream(uint8_t* cmd, uint8_t cmdLen, uint8_t* data, size_t numBytes, bool waitForGpio = true, bool verify = true);
+    int16_t SPIwriteStream(const uint8_t* cmd, uint8_t cmdLen, const uint8_t* data, size_t numBytes, bool waitForGpio = true, bool verify = true);
     
     /*!
       \brief SPI single transfer method for modules with stream-type SPI interface (SX126x, SX128x etc.).
@@ -379,15 +380,12 @@ class Module {
       \param waitForGpio Whether to wait for some GPIO at the end of transfer (e.g. BUSY line on SX126x/SX128x).
       \returns \ref status_codes
     */
-    int16_t SPItransferStream(const uint8_t* cmd, uint8_t cmdLen, bool write, uint8_t* dataOut, uint8_t* dataIn, size_t numBytes, bool waitForGpio);
+    int16_t SPItransferStream(const uint8_t* cmd, uint8_t cmdLen, bool write, const uint8_t* dataOut, uint8_t* dataIn, size_t numBytes, bool waitForGpio);
 
     // pin number access methods
-
-    /*!
-      \brief Access method to get the pin number of SPI chip select.
-      \returns Pin number of SPI chip select configured in the constructor.
-    */
-    uint32_t getCs() const { return(csPin); }
+    // getCs is omitted on purpose, as it can interfere when accessing the SPI in a concurrent environment
+    // so it is considered to be part of the SPI pins and hence not accessible from outside
+    // see https://github.com/jgromes/RadioLib/discussions/1364
 
     /*!
       \brief Access method to get the pin number of interrupt/GPIO.
